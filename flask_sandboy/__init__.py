@@ -14,12 +14,12 @@ from flask_sandboy.exception import (
     NotImplementedException,
     ServiceUnavailableException)
 
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 
 
 class Sandboy(object):
     """Main object for injecting RESTful HTTP endpoint."""
-    def __init__(self, app, db, models, url_prefix=None, readonly=False):
+    def __init__(self, app, db, models, url_prefix=None, readonly=False, before_request=[]):
         """Initialize and register the given *models*."""
         self.app = app
         self.db = db
@@ -27,6 +27,7 @@ class Sandboy(object):
         self.blueprint = None
         self.url_prefix = url_prefix
         self.readonly = readonly
+        self.before_request = before_request
         self.init_app(app, models)
 
     def init_app(self, app, models):
@@ -34,6 +35,8 @@ class Sandboy(object):
 
         # pylint: disable=unused-variable
         self.blueprint = Blueprint('sandboy', __name__, url_prefix=self.url_prefix)
+        for br in self.before_request:
+            self.blueprint.before_request(br)
 
         @self.blueprint.errorhandler(BadRequestException)
         @self.blueprint.errorhandler(ForbiddenException)
