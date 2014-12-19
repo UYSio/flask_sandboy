@@ -43,6 +43,8 @@ def verify_fields(function):
             if required.name in (
                     instance.__model__.__table__.primary_key.columns):
                 continue
+            elif required.default or required.server_default or required.nullable:
+                continue
             if required.name not in data:
                 raise ForbiddenException('{} required'.format(required))
         return function(instance, *args, **kwargs)
