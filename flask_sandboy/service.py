@@ -25,9 +25,10 @@ class ReadService(MethodView):
     def _all_resources(self):
         """Return all resources of this type as a JSON list."""
         builder = self.__model__.query
-        for key, value in request.args.iteritems():
+        for key in request.args:
             if hasattr(self.__model__, key):
-                builder = builder.filter_by(**{key:value})
+                vals = request.args.getlist(key)
+                builder = builder.filter(getattr(self.__model__, key).in_(vals))
         if not 'page' in request.args:
             resources = builder.all()
         else:
