@@ -17,18 +17,23 @@ class ReadService(MethodView):
         if resource_id is None:
             return self._all_resources()
         else:
-            resource = self._resource(resource_id)
-            if not resource:
-                raise NotFoundException
-            return jsonify(resource.to_dict())
+            if ',' in resource_id:
+                return self._all_resources(ids=resource_id.split(','))
+            else:
+                resource = self._resource(resource_id)
+                if not resource:
+                    raise NotFoundException
+                return jsonify(resource.to_dict())
 
-    def _all_resources(self):
+    def _all_resources(self, ids=None):
         """Return all resources of this type as a JSON list."""
         builder = self.__model__.query
         for key in request.args:
             if hasattr(self.__model__, key):
                 vals = request.args.getlist(key)
                 builder = builder.filter(getattr(self.__model__, key).in_(vals))
+        if ids:
+            builder = builder.filter(self.__model__.id.in_(ids))
         if not 'page' in request.args:
             resources = builder.all()
         else:
