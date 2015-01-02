@@ -24,10 +24,14 @@ class ReadService(MethodView):
 
     def _all_resources(self):
         """Return all resources of this type as a JSON list."""
+        builder = self.__model__.query
+        for key, value in request.args.iteritems():
+            if hasattr(self.__model__, key):
+                builder = builder.filter_by(**{key:value})
         if not 'page' in request.args:
-            resources = self.__db__.session.query(self.__model__).all()
+            resources = builder.all()
         else:
-            resources = self.__model__.query.paginate(
+            resources = builder.paginate(
                 int(request.args['page'])).items
         return jsonify(
             {'resources': [resource.to_dict() for resource in resources]})
