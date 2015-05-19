@@ -19,7 +19,8 @@ __version__ = '0.0.4'
 
 class Sandboy(object):
     """Main object for injecting RESTful HTTP endpoint."""
-    def __init__(self, app, db, models, url_prefix=None, readonly=False, before_request=[]):
+    def __init__(self, app, db, models, url_prefix=None,
+            readonly=False, before_request=[], decorators=[]):
         """Initialize and register the given *models*."""
         self.app = app
         self.db = db
@@ -28,6 +29,7 @@ class Sandboy(object):
         self.url_prefix = url_prefix
         self.readonly = readonly
         self.before_request = before_request
+        self.decorators = decorators
         self.init_app(app, models)
 
     def init_app(self, app, models):
@@ -65,6 +67,8 @@ class Sandboy(object):
                 {})
 
             service = ReadService if self.readonly else WriteService
+
+            service.decorators = self.decorators
 
             new_endpoint = type(
                 cls.__name__ + 'Endpoint',
