@@ -48,12 +48,19 @@ class Sandboy(object):
         @self.blueprint.errorhandler(ServerErrorException)
         @self.blueprint.errorhandler(NotImplementedException)
         @self.blueprint.errorhandler(ServiceUnavailableException)
+        @self.blueprint.errorhandler(Exception)
         def handle_application_error(error):
             """Handler used to send JSON error messages rather than default
             HTML ones."""
-            response = jsonify(error.to_dict())
-            response.status_code = error.code
-            return response
+            if hasattr(error, 'to_dict'):
+                response = jsonify(error.to_dict())
+            else:
+                response = jsonify({'msg':str(error)})
+            if hasattr(error, 'code'):
+                response.status_code = error.code
+            else:
+                response.status_code = 500
+            return response  
 
         self.register(models)
         app.register_blueprint(self.blueprint)
