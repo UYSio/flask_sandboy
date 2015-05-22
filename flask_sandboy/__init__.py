@@ -1,6 +1,11 @@
 """Flask application that creates a RESTful API from SQLAlchemy models."""
 
-from flask import Blueprint, jsonify
+from flask import (
+    Blueprint,
+    jsonify,
+    current_app,
+)
+import uuid
 
 from flask_sandboy.service import WriteService, ReadService
 from flask_sandboy.models import SerializableModel
@@ -52,10 +57,15 @@ class Sandboy(object):
         def handle_application_error(error):
             """Handler used to send JSON error messages rather than default
             HTML ones."""
+            error_token = str(uuid.uuid4())
+            current_app.logger.error('error_token=%s' % error_token)
+            current_app.logger.exception(error)
             if hasattr(error, 'to_dict'):
-                response = jsonify(error.to_dict())
+                error_dict = error.to_dict()
+                error_dict.update({'error_token': error_token})
+                response = jsonify(error_dict)
             else:
-                response = jsonify({'msg':str(error)})
+                response = jsonify({'msg':'An error occurred.', 'error_token': error_token})
             if hasattr(error, 'code'):
                 response.status_code = error.code
             else:
