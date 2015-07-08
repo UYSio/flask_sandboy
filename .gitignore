@@ -1,2 +1,3 @@
 *.pyc
 .*sw[op]
+tests/db.sqlite3
