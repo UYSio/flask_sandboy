@@ -65,7 +65,7 @@ Start the server and let's test out our new REST API:
 
 .. code:: shell
 
-    $ http -vv -j POST localhost:5000/cloud name=first_cloud description="my first cloud"                                                                      master
+    $ http -vv -j POST localhost:5000/cloud name=first_cloud description="my first cloud"
     POST /cloud HTTP/1.1
     Accept: application/json
     Accept-Encoding: gzip, deflate, compress
@@ -93,7 +93,7 @@ Start the server and let's test out our new REST API:
 
 .. code:: shell
 
-    $ http localhost:5000/cloud/1                                                                                                                                       master
+    $ http localhost:5000/cloud/1
     HTTP/1.0 200 OK
     Content-Length: 75
     Content-Type: application/json
@@ -108,7 +108,7 @@ Start the server and let's test out our new REST API:
 
 .. code:: shell
 
-    $ http DELETE :5000/cloud/1                                                                                                                                master
+    $ http DELETE :5000/cloud/1
     HTTP/1.0 204 NO CONTENT
     Content-Length: 0
     Content-Type: text/html; charset=utf-8
