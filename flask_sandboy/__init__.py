@@ -37,6 +37,12 @@ class Sandboy(object):
         self.decorators = decorators
         self.init_app(app, models)
 
+    def _log_and_get_token(self, error):
+        error_token = str(uuid.uuid4())
+        current_app.logger.error('error_token=%s' % error_token)
+        current_app.logger.exception(error)
+        return error_token
+
     def init_app(self, app, models):
         """Initialize and register error handlers."""
 
@@ -57,20 +63,21 @@ class Sandboy(object):
         def handle_application_error(error):
             """Handler used to send JSON error messages rather than default
             HTML ones."""
-            error_token = str(uuid.uuid4())
-            current_app.logger.error('error_token=%s' % error_token)
-            current_app.logger.exception(error)
             if hasattr(error, 'to_dict'):
                 error_dict = error.to_dict()
-                error_dict.update({'error_token': error_token})
-                response = jsonify(error_dict)
             else:
-                response = jsonify({'msg':'An error occurred.', 'error_token': error_token})
+                # if it's an non-specific error
+                error_dict = {'msg':'An error occurred.'}
+                error_token = self._log_and_get_token(error)
+                error_dict.update({'error_token': error_token})
+
+            response = jsonify(error_dict)
+
             if hasattr(error, 'code'):
                 response.status_code = error.code
             else:
                 response.status_code = 500
-            return response  
+            return response
 
         self.register(models)
         app.register_blueprint(self.blueprint)

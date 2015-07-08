@@ -1,7 +1,7 @@
 """Tests for sandboy."""
 import json
-
 import pytest
+from mock import MagicMock
 from flask import Flask
 from flask.ext.sqlalchemy import SQLAlchemy
 from flask.ext.sandboy import Sandboy
@@ -37,7 +37,7 @@ def big_data(app):
                 description=str(index),
                 cloud=cloud,
                 operating_system='Arch 64'))
-        db.session.commit() 
+        db.session.commit()
 
 
 @pytest.fixture
@@ -75,7 +75,7 @@ def test_get_single_resource(app, data):
     with app.test_client() as client:
         response = client.get('/machine/1')
         assert response.status_code == 200
-        json_response = json.loads(response.get_data(as_text=True))
+        json_response = json.loads(response.data)
         assert json_response['id'] == 1
         assert json_response['hostname'] == 'zeus'
         assert json_response['description'] == 'application server'
@@ -90,7 +90,7 @@ def test_post_resource(app):
             'description': 'test description'
             }))
         assert response.status_code == 201
-        json_response = json.loads(response.get_data(as_text=True))
+        json_response = json.loads(response.data)
         assert json_response['id'] == 1
         assert json_response['name'] == 'temp'
         assert json_response['description'] == 'test description'
@@ -118,7 +118,7 @@ def test_put(app):
             'description': 'a private cloud'
             }))
         assert response.status_code == 201
-        json_response = json.loads(response.get_data(as_text=True))
+        json_response = json.loads(response.data)
         assert json_response['name'] == 'private_cloud'
         assert json_response['description'] == 'a private cloud'
 
@@ -130,7 +130,7 @@ def test_patch(app, data):
             'description': 'a private cloud',
             }))
         assert response.status_code == 201
-        json_response = json.loads(response.get_data(as_text=True))
+        json_response = json.loads(response.data)
         assert json_response['name'] == 'new cloud'
         assert json_response['description'] == 'a private cloud'
 
@@ -142,7 +142,7 @@ def test_put_existing_resource(app, data):
             'description': 'my public cloud'
             }))
         assert response.status_code == 201
-        json_response = json.loads(response.get_data(as_text=True))
+        json_response = json.loads(response.data)
         assert json_response['name'] == 'public_cloud'
         assert json_response['description'] == 'my public cloud'
 
@@ -151,7 +151,7 @@ def test_paginate(app, big_data):
     with app.test_client() as client:
         response = client.get('/machine?page=2')
         assert response.status_code == 200
-        json_response = json.loads(response.get_data(as_text=True))['resources']
+        json_response = json.loads(response.data)['resources']
         assert json_response[0]['description'] == '20'
 
 def test_post_missing_field(app):
@@ -161,7 +161,7 @@ def test_post_missing_field(app):
             'description': 'test description'
             }))
         assert response.status_code == 403
-        json_response = json.loads(response.get_data())
+        json_response = json.loads(response.data)
         assert json_response == {'message': 'cloud.name required'}
 
 def test_post_no_data(app):
@@ -169,7 +169,7 @@ def test_post_no_data(app):
     with app.test_client() as client:
         response = client.post('/cloud')
         assert response.status_code == 400
-        json_response = json.loads(response.get_data())
+        json_response = json.loads(response.data)
         assert json_response == {'message': 'No data received from request'}
 
 def test_get_missing_resource(app):
@@ -177,3 +177,15 @@ def test_get_missing_resource(app):
     with app.test_client() as client:
         response = client.get('/machine/31337')
         assert response.status_code == 404
+
+def test_unhandled_error(app):
+    """If we do any action on any resource, and an unhandled error is
+    raised, log the error via a token in the reponse"""
+    msg = 'a potentially sensitive error message'
+    with app.test_client() as client:
+        client.application.db.session.query = MagicMock(side_effect=Exception(msg))
+        response = client.get('/machine/1')
+        assert response.status_code == 500
+        json_response = json.loads(response.data)
+        assert 'error_token' in json_response
+        assert msg not in response.data
