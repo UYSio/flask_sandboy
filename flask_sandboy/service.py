@@ -1,5 +1,5 @@
 """Base service for all RESTful endpoints."""
-from flask import request, jsonify, make_response
+from flask import request, make_response
 from flask.views import MethodView
 
 from flask_sandboy.models import verify_fields
@@ -12,6 +12,12 @@ class ReadService(MethodView):
     __model__ = None
     __db__ = None
 
+    def _render(self, tup):
+        if self.renderer:
+            return self.renderer(tup)
+        else:
+            return tup
+
     def get(self, resource_id):
         """Return response to HTTP GET request."""
         if resource_id is None:
@@ -23,7 +29,7 @@ class ReadService(MethodView):
                 resource = self._resource(resource_id)
                 if not resource:
                     raise NotFoundException
-                return jsonify(resource.to_dict())
+                return self._render((resource.to_dict(), 200, {}))
 
     def _all_resources(self, ids=None):
         """Return all resources of this type as a JSON list."""
@@ -39,8 +45,9 @@ class ReadService(MethodView):
         else:
             resources = builder.paginate(
                 int(request.args['page'])).items
-        return jsonify(
-            {'resources': [resource.to_dict() for resource in resources]})
+        dct = {'resources': [resource.to_dict() for resource in resources]}
+        return self._render((dct, 200, {}))
+
 
     def _resource(self, resource_id):
         """Return resource represented by this *resource_id*."""
@@ -95,17 +102,10 @@ class WriteService(ReadService):
         self.__db__.session.commit()
         return self._created_response(resource.to_dict())
 
-
-    @staticmethod
-    def _no_content_response():
+    def _no_content_response(self):
         """Return an HTTP 204 "No Content" response."""
-        response = make_response()
-        response.status_code = 204
-        return response
+        return self._render(({}, 204, {}))
 
-    @staticmethod
-    def _created_response(resource):
+    def _created_response(self, resource):
         """Return an HTTP 201 "Created" response."""
-        response = jsonify(resource)
-        response.status_code = 201
-        return response
+        return self._render((resource, 201, {}))

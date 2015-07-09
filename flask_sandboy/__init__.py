@@ -1,31 +1,44 @@
 """Flask application that creates a RESTful API from SQLAlchemy models."""
 
-from flask import (
-    Blueprint,
-    jsonify,
-    current_app,
-)
+from flask import (Blueprint, jsonify, current_app, )
 import uuid
 
 from flask_sandboy.service import WriteService, ReadService
 from flask_sandboy.models import SerializableModel
 from flask_sandboy.exception import (
-    BadRequestException,
-    ForbiddenException,
-    NotAcceptableException,
-    NotFoundException,
-    ConflictException,
-    ServerErrorException,
-    NotImplementedException,
-    ServiceUnavailableException)
+    BadRequestException, ForbiddenException, NotAcceptableException,
+    NotFoundException, ConflictException, ServerErrorException,
+    NotImplementedException, ServiceUnavailableException)
 
 __version__ = '0.0.4'
 
 
+def default_render(service_response):
+    """
+    The default render function for responses returned by
+    the service.
+
+    Accepts a tuple of the form:
+    (dict, status_code, headers)
+    and turns it into a Flask JSON response.
+    """
+    response, status, headers = service_response
+    flask_response = jsonify(response)
+    flask_response.status_code = status
+    for key in headers:
+        flask_response.headers.add(key, headers[key])
+    return flask_response
+
+
 class Sandboy(object):
     """Main object for injecting RESTful HTTP endpoint."""
-    def __init__(self, app, db, models, url_prefix=None,
-            readonly=False, before_request=[], decorators=[]):
+
+    def __init__(self, app, db, models,
+                 url_prefix=None,
+                 readonly=False,
+                 before_request=[],
+                 decorators=[],
+                 renderer=default_render):
         """Initialize and register the given *models*."""
         self.app = app
         self.db = db
@@ -35,6 +48,7 @@ class Sandboy(object):
         self.readonly = readonly
         self.before_request = before_request
         self.decorators = decorators
+        self.renderer = renderer
         self.init_app(app, models)
 
     def _log_and_get_token(self, error):
@@ -47,7 +61,8 @@ class Sandboy(object):
         """Initialize and register error handlers."""
 
         # pylint: disable=unused-variable
-        self.blueprint = Blueprint('sandboy', __name__, url_prefix=self.url_prefix)
+        self.blueprint = Blueprint('sandboy', __name__,
+                                   url_prefix=self.url_prefix)
         for br in self.before_request:
             self.blueprint.before_request(br)
 
@@ -67,7 +82,7 @@ class Sandboy(object):
                 error_dict = error.to_dict()
             else:
                 # if it's an non-specific error
-                error_dict = {'msg':'An error occurred.'}
+                error_dict = {'msg': 'An error occurred.'}
                 error_token = self._log_and_get_token(error)
                 error_dict.update({'error_token': error_token})
 
@@ -86,17 +101,18 @@ class Sandboy(object):
         """Register a class to be given a REST API."""
         for cls in cls_list:
             serializable_model = type(
-                cls.__name__ + 'Serializable',
-                (cls, SerializableModel),
-                {})
+                cls.__name__ + 'Serializable', (cls, SerializableModel), {})
 
             service = ReadService if self.readonly else WriteService
 
             service.decorators = self.decorators
+            if self.renderer:
+                service.renderer = lambda a,b: self.renderer(b)
+            else:
+                service.renderer = None
 
             new_endpoint = type(
-                cls.__name__ + 'Endpoint',
-                (service,),
+                cls.__name__ + 'Endpoint', (service, ),
                 {'__model__': serializable_model,
                  '__db__': self.db})
             view_func = new_endpoint.as_view(
