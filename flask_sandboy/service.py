@@ -63,12 +63,12 @@ class WriteService(ReadService):
     def post(self, resource_id=None):
         """Return response to HTTP POST request."""
         # pylint: disable=unused-argument
-        resource = self.__model__.query.filter_by(**request.json).first()
+        resource = self.__model__.query.filter_by(**request.get_json()).first()
         # resource already exists; don't create it again
         if resource:
             return self._no_content_response()
         instance = self.__model__(  # pylint: disable=not-callable
-            **request.json)
+            **request.get_json())
         self.__db__.session.add(instance)
         self.__db__.session.commit()
         return self._created_response(instance.to_dict())
@@ -86,9 +86,9 @@ class WriteService(ReadService):
         instance = self._resource(resource_id)
         if instance is None:
             instance = self.__model__(   # pylint: disable=not-callable
-                **request.json)
+                **request.get_json())
         else:
-            instance.from_dict(request.json)
+            instance.from_dict(request.get_json())
         self.__db__.session.add(instance)
         self.__db__.session.commit()
         return self._created_response(instance.to_dict())
@@ -97,7 +97,7 @@ class WriteService(ReadService):
     def patch(self, resource_id):
         """Return response to HTTP PATCH request."""
         resource = self._resource(resource_id)
-        resource.from_dict(request.json)
+        resource.from_dict(request.get_json())
         self.__db__.session.add(resource)
         self.__db__.session.commit()
         return self._created_response(resource.to_dict())
