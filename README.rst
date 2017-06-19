@@ -150,12 +150,17 @@ Ordering
 
 Flask-Sandboy supports ordering of fields. Simply add an ``order_by`` parameter:
 
-========
-Examples
---------
-``<model_name>?order_by=field``
-``<model_name>?order_by=field:desc``
-``<model_name>?order_by=field:desc,field2``
+
++---------------------------------------------+
+| Examples                                    |
++=============================================+
+| ``<model_name>?order_by=field``             |
++---------------------------------------------+
+| ``<model_name>?order_by=field:desc``        |
++---------------------------------------------+
+| ``<model_name>?order_by=field:desc,field2`` |
++---------------------------------------------+
+
 
 TODO
 ----
