@@ -145,6 +145,18 @@ Flask-Sandboy supports pagination of results by default. Simply add a
 ``<model_name>?page=2`` to your request to get paginated results. By
 default, 20 results per page are returned.
 
+Ordering
+--------
+
+Flask-Sandboy supports ordering of fields. Simply add an ``order_by`` parameter:
+
+========
+Examples
+--------
+``<model_name>?order_by=field``
+``<model_name>?order_by=field:desc``
+``<model_name>?order_by=field:desc,field2``
+
 TODO
 ----
 
@@ -152,6 +164,10 @@ I'll leave it up to the Issues tab to track this.
 
 Release History
 ---------------
+
+0.0.3+
+~~~~~~
+Bunch of new features.
 
 0.0.3
 ~~~~~

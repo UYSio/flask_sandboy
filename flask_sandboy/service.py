@@ -5,6 +5,7 @@ from flask.views import MethodView
 from flask_sandboy.models import verify_fields
 from flask_sandboy.exception import NotFoundException
 
+from sqlalchemy import desc
 
 class ReadService(MethodView):
     """Base class for all resources."""
@@ -35,11 +36,25 @@ class ReadService(MethodView):
         """Return all resources of this type as a JSON list."""
         builder = self.__model__.query
         for key in request.args:
+            vals = request.args.getlist(key)
             if hasattr(self.__model__, key):
-                vals = request.args.getlist(key)
                 builder = builder.filter(getattr(self.__model__, key).in_(vals))
+            elif key == 'order_by':
+                for val in vals:
+                    if any(token in val for token in ['desc','asc']):
+                        field, ordering = val.split(':')
+                    else:
+                        field = val
+                        ordering = 'asc'
+                    if ordering == 'desc':
+                        builder = builder.order_by(desc(field))
+                    else:
+                        builder = builder.order_by(field)
+
         if ids:
             builder = builder.filter(self.__model__.id.in_(ids))
+
+        # pagination
         if not 'page' in request.args:
             resources = builder.all()
         else:
